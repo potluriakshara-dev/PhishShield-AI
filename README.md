@@ -1,6 +1,6 @@
 # PhishShield AI — Threat & QR (Quishing) Scanner
 
-PhishShield AI is a cybersecurity utility that protects users against phishing URLs and QR code-based phishing (quishing) threats. It features both a desktop client interface and a responsive, glassmorphic web dashboard.
+PhishShield AI is a cybersecurity utility that protects users against phishing URLs and QR code-based phishing (quishing) threats. It features a Tkinter-based desktop interface.
 
 ---
 
@@ -11,9 +11,7 @@ PhishShield AI is a cybersecurity utility that protects users against phishing U
 *   **Live Webcam QR Scanner**: Streams live video, detects QR codes instantly, and evaluates their safety.
 *   **Multilingual Alerts**: Displays danger and warning signals in multiple languages (English, Telugu, Hindi).
 *   **Recent Scan History Log**: Logs all threat analyses into a local CSV file for security auditing.
-*   **Dual Interfaces**:
-    *   **Desktop Client**: Tkinter GUI desktop interface.
-    *   **Web Dashboard**: Glassmorphic dark-mode web application.
+*   **Desktop Interface**: Tkinter GUI desktop application.
 
 ---
 
@@ -36,20 +34,14 @@ ln -sf $(brew --prefix zbar)/lib/libzbar.dylib ~/lib/libzbar.dylib
 ### 2. Install Python Packages
 Install the required packages using pip:
 ```bash
-pip install opencv-python pyzbar Pillow scikit-learn numpy requests flask
+pip install opencv-python pyzbar Pillow scikit-learn numpy requests
 ```
 
 ---
 
-## 🚀 Running the Applications
+## 🚀 Running the Application
 
-#### 🌐 Live Public URL
- you can access it publicly at:
-👉 **[phishshield-ai-production.up.railway.app](https://phishshield-ai-production.up.railway.app)**
-
-
-
-### Option B: Run the Desktop Client (Tkinter GUI)
+### Run the Desktop Client (Tkinter GUI)
 Launch the desktop application:
 ```bash
 python main.py
@@ -60,8 +52,6 @@ python main.py
 ## 📁 Project Structure
 
 *   `main.py`: The Tkinter GUI desktop interface.
-*   `web_server.py`: The Flask web server for the web demo interface.
-*   `templates/index.html`: The HTML/CSS/JS code for the web dashboard.
 *   `url_analyzer.py`: Backend scoring and feature extraction engine.
 *   `qr_scanner.py`: Camera and image QR code decoder.
 *   `logger.py`: Appends scans to local history.
