@@ -45,7 +45,7 @@ pip install opencv-python pyzbar Pillow scikit-learn numpy requests flask
 
 #### 🌐 Live Public URL
  you can access it publicly at:
-👉 **phishshield-ai-production.up.railway.app**
+👉 **[phishshield-ai-production.up.railway.app]**
 
 
 
