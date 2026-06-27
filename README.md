@@ -51,6 +51,12 @@ python web_server.py
 Open your browser and navigate to:
 👉 **[http://127.0.0.1:5001](http://127.0.0.1:5001)**
 
+#### 🌐 Live Public URL
+If the server is currently running, you can access it publicly at:
+👉 **[https://12f0a3e601074d.lhr.life](https://12f0a3e601074d.lhr.life)**
+
+*(Note: If you restart the server and want to generate a new public tunnel URL, run this command in a new terminal window: `ssh -R 80:localhost:5001 nokey@localhost.run`)*
+
 ### Option B: Run the Desktop Client (Tkinter GUI)
 Launch the desktop application:
 ```bash
