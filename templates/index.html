@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PhishShield AI — Threat &amp; QR Scanner</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0f172a;
+      --surface:     #1e293b;
+      --surface-2:   #263348;
+      --border:      rgba(125, 211, 252, 0.12);
+      --accent:      #7dd3fc;
+      --accent-dim:  #38bdf8;
+      --text:        #f8fafc;
+      --muted:       #94a3b8;
+      --safe:        #22c55e;
+      --warn:        #eab308;
+      --danger:      #ef4444;
+      --radius:      14px;
+      --radius-sm:   8px;
+      --shadow:      0 8px 32px rgba(0, 0, 0, 0.45);
+      --transition:  0.2s ease;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* ── Layout ───────────────────────────────────────────────────────────── */
+    .page-wrapper {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+
+    /* ── Header ───────────────────────────────────────────────────────────── */
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #1d4ed8, #7c3aed);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 4px 16px rgba(124, 58, 237, 0.4);
+    }
+
+    header h1 {
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-top: 4px;
+    }
+
+    /* ── Card ─────────────────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── Tab Navigation ───────────────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 28px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 6px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+    }
+
+    .tab-btn:hover { color: var(--text); background: var(--surface-2); }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, #1d4ed8, #7c3aed);
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(124, 58, 237, 0.35);
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Form Elements ────────────────────────────────────────────────────── */
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input[type="text"],
+    input[type="url"] {
+      width: 100%;
+      padding: 13px 16px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+
+    input[type="text"]:focus,
+    input[type="url"]:focus {
+      border-color: var(--accent-dim);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+    }
+
+    input[type="text"]::placeholder,
+    input[type="url"]::placeholder { color: #475569; }
+
+    /* ── Buttons ──────────────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition);
+      white-space: nowrap;
+    }
+
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #1d4ed8, #7c3aed);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      box-shadow: 0 6px 20px rgba(124, 58, 237, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #334155;
+      transform: translateY(-1px);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #b91c1c, #ef4444);
+      color: #fff;
+    }
+
+    .btn-danger:hover:not(:disabled) { transform: translateY(-1px); }
+
+    /* ── Input Row ────────────────────────────────────────────────────────── */
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
+    .input-row .input-wrap { flex: 1; }
+
+    /* ── Drop Zone ────────────────────────────────────────────────────────── */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition);
+      position: relative;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.drag-over {
+      border-color: var(--accent-dim);
+      background: rgba(56, 189, 248, 0.05);
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .drop-zone-icon { font-size: 2.5rem; margin-bottom: 10px; }
+
+    .drop-zone p { color: var(--muted); font-size: 0.9rem; }
+
+    .drop-zone strong { color: var(--accent); }
+
+    #qr-preview {
+      max-width: 220px;
+      max-height: 220px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      margin: 14px auto 0;
+      display: none;
+    }
+
+    /* ── Webcam ───────────────────────────────────────────────────────────── */
+    .webcam-container {
+      position: relative;
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: #000;
+      aspect-ratio: 16/9;
+      max-height: 340px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #webcam-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    .webcam-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+    }
+
+    .webcam-placeholder span { font-size: 3rem; }
+
+    .webcam-controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    #webcam-status {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 10px;
+      min-height: 20px;
+    }
+
+    /* ── Result Panel ─────────────────────────────────────────────────────── */
+    .result-panel {
+      margin-top: 24px;
+      display: none;
+    }
+
+    .result-panel.visible { display: block; }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 600px) {
+      .result-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Gauge ────────────────────────────────────────────────────────────── */
+    .gauge-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .gauge-svg { width: 160px; height: 90px; overflow: visible; }
+
+    .gauge-track {
+      fill: none;
+      stroke: #334155;
+      stroke-width: 14;
+      stroke-linecap: round;
+    }
+
+    .gauge-fill {
+      fill: none;
+      stroke-width: 14;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.7s cubic-bezier(0.4, 0, 0.2, 1),
+                  stroke 0.4s ease;
+    }
+
+    .gauge-score {
+      font-size: 1.8rem;
+      font-weight: 800;
+      fill: var(--text);
+    }
+
+    .gauge-label {
+      font-size: 0.65rem;
+      fill: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .verdict-badge {
+      padding: 5px 18px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .verdict-SAFE       { background: rgba(34, 197, 94, 0.15);  color: var(--safe);   border: 1px solid rgba(34, 197, 94, 0.3); }
+    .verdict-SUSPICIOUS { background: rgba(234, 179, 8, 0.15);  color: var(--warn);   border: 1px solid rgba(234, 179, 8, 0.3); }
+    .verdict-PHISHING   { background: rgba(239, 68, 68, 0.15);  color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    /* ── Flags List ───────────────────────────────────────────────────────── */
+    .flags-panel { flex: 1; }
+
+    .flags-panel h3 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+    }
+
+    .flags-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .flags-list li {
+      font-size: 0.88rem;
+      padding: 8px 12px;
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      border-left: 3px solid transparent;
+      color: var(--text);
+    }
+
+    .flags-list li.flag-safe    { border-color: var(--safe);   color: var(--safe); }
+    .flags-list li.flag-warn    { border-color: var(--warn);   }
+    .flags-list li.flag-danger  { border-color: var(--danger); }
+
+    /* ── Multilingual Alert ───────────────────────────────────────────────── */
+    .multilingual-alert {
+      margin-top: 16px;
+      padding: 14px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-weight: 600;
+      line-height: 1.8;
+      display: none;
+    }
+
+    .multilingual-alert.visible { display: block; }
+
+    .alert-safe    { background: rgba(34, 197, 94, 0.1);  border: 1px solid rgba(34, 197, 94, 0.25);  color: var(--safe); }
+    .alert-warn    { background: rgba(234, 179, 8, 0.1);  border: 1px solid rgba(234, 179, 8, 0.25);  color: var(--warn); }
+    .alert-danger  { background: rgba(239, 68, 68, 0.1);  border: 1px solid rgba(239, 68, 68, 0.25);  color: var(--danger); }
+
+    /* ── Analyzed URL display ─────────────────────────────────────────────── */
+    .analyzed-url {
+      margin-bottom: 16px;
+      padding: 10px 14px;
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      color: var(--muted);
+      word-break: break-all;
+    }
+
+    .analyzed-url strong { color: var(--accent); display: block; margin-bottom: 2px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* ── Spinner ──────────────────────────────────────────────────────────── */
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── History Table ────────────────────────────────────────────────────── */
+    .history-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .history-empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+    }
+
+    .history-empty span { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    thead th {
+      background: var(--surface-2);
+      padding: 11px 14px;
+      text-align: left;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-top: 1px solid var(--border);
+      transition: background var(--transition);
+    }
+
+    tbody tr:hover { background: var(--surface-2); }
+
+    tbody td {
+      padding: 11px 14px;
+      color: var(--text);
+      vertical-align: middle;
+    }
+
+    .url-cell {
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--muted);
+      font-family: monospace;
+      font-size: 0.8rem;
+    }
+
+    .score-pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+
+    .score-safe    { background: rgba(34, 197, 94, 0.15);  color: var(--safe); }
+    .score-warn    { background: rgba(234, 179, 8, 0.15);  color: var(--warn); }
+    .score-danger  { background: rgba(239, 68, 68, 0.15);  color: var(--danger); }
+
+    .ts-cell { color: var(--muted); font-size: 0.78rem; white-space: nowrap; }
+
+    /* ── Toast ────────────────────────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      padding: 12px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #fff;
+      background: #1e293b;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      transform: translateY(80px);
+      opacity: 0;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      z-index: 9999;
+      max-width: 340px;
+    }
+
+    #toast.show { transform: translateY(0); opacity: 1; }
+
+    /* ── Responsive ───────────────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .tabs { flex-direction: column; }
+      .input-row { flex-direction: column; }
+      .input-row .btn { width: 100%; }
+      .webcam-controls { flex-direction: column; }
+      .webcam-controls .btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+
+    <!-- ── Header ─────────────────────────────────────────────────────────── -->
+    <header>
+      <div class="logo">
+        <div class="logo-icon">🛡️</div>
+        <h1>PhishShield AI</h1>
+      </div>
+      <p>Real-time phishing URL detection &amp; QR code (quishing) threat analysis</p>
+    </header>
+
+    <!-- ── Tab Navigation ─────────────────────────────────────────────────── -->
+    <nav class="tabs" role="tablist">
+      <button class="tab-btn active" role="tab" data-tab="url-tab">
+        🔗 URL Analyzer
+      </button>
+      <button class="tab-btn" role="tab" data-tab="qr-tab">
+        📷 QR Image Scan
+      </button>
+      <button class="tab-btn" role="tab" data-tab="webcam-tab">
+        📹 Live Webcam
+      </button>
+      <button class="tab-btn" role="tab" data-tab="history-tab">
+        📋 Scan History
+      </button>
+    </nav>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         TAB 1 — URL Analyzer
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <div id="url-tab" class="tab-panel active">
+      <div class="card">
+        <div class="card-title">🔗 Analyze a URL</div>
+
+        <div class="input-row">
+          <div class="input-wrap">
+            <label for="url-input">Enter URL</label>
+            <input
+              type="url"
+              id="url-input"
+              placeholder="https://example.com/login?verify=true"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </div>
+          <button class="btn btn-primary" id="url-analyze-btn" onclick="analyzeURL()">
+            <span class="spinner" id="url-spinner"></span>
+            <span id="url-btn-text">Analyze Threat</span>
+          </button>
+        </div>
+
+        <!-- Result -->
+        <div class="result-panel" id="url-result">
+          <div class="analyzed-url" id="url-analyzed-display">
+            <strong>Analyzed URL</strong>
+            <span id="url-analyzed-text"></span>
+          </div>
+          <div class="result-grid">
+            <div class="gauge-wrap">
+              <svg class="gauge-svg" viewBox="0 0 160 90" id="url-gauge-svg">
+                <!-- Half-circle track: r=65, cx=80, cy=80 -->
+                <path class="gauge-track"
+                  d="M 15 80 A 65 65 0 0 1 145 80"
+                  stroke-dasharray="204.2"
+                  stroke-dashoffset="0"
+                />
+                <path class="gauge-fill" id="url-gauge-fill"
+                  d="M 15 80 A 65 65 0 0 1 145 80"
+                  stroke="#22c55e"
+                  stroke-dasharray="204.2"
+                  stroke-dashoffset="204.2"
+                />
+                <text class="gauge-score" id="url-gauge-score"
+                  x="80" y="72" text-anchor="middle">0.0</text>
+                <text class="gauge-label"
+                  x="80" y="86" text-anchor="middle">Risk Score / 10</text>
+              </svg>
+              <span class="verdict-badge verdict-SAFE" id="url-verdict-badge">SAFE</span>
+            </div>
+
+            <div class="flags-panel">
+              <h3>Threat Analysis Flags</h3>
+              <ul class="flags-list" id="url-flags-list"></ul>
+            </div>
+          </div>
+
+          <div class="multilingual-alert" id="url-multilingual"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         TAB 2 — QR Image Scan
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <div id="qr-tab" class="tab-panel">
+      <div class="card">
+        <div class="card-title">📷 Scan QR Code from Image</div>
+
+        <div class="drop-zone" id="drop-zone">
+          <input type="file" id="qr-file-input" accept="image/*" onchange="handleFileSelect(event)" />
+          <div class="drop-zone-icon">🖼️</div>
+          <p><strong>Click to upload</strong> or drag &amp; drop an image</p>
+          <p>PNG, JPG, JPEG, BMP, WEBP supported</p>
+          <img id="qr-preview" alt="QR preview" />
+        </div>
+
+        <div style="margin-top: 16px; display: flex; justify-content: center;">
+          <button class="btn btn-primary" id="qr-scan-btn" onclick="scanQRImage()" disabled>
+            <span class="spinner" id="qr-spinner"></span>
+            <span id="qr-btn-text">Scan &amp; Analyze</span>
+          </button>
+        </div>
+
+        <!-- Result -->
+        <div class="result-panel" id="qr-result">
+          <div class="analyzed-url" id="qr-analyzed-display">
+            <strong>URL Extracted from QR</strong>
+            <span id="qr-analyzed-text"></span>
+          </div>
+          <div class="result-grid">
+            <div class="gauge-wrap">
+              <svg class="gauge-svg" viewBox="0 0 160 90" id="qr-gauge-svg">
+                <path class="gauge-track"
+                  d="M 15 80 A 65 65 0 0 1 145 80"
+                  stroke-dasharray="204.2"
+                  stroke-dashoffset="0"
+                />
+                <path class="gauge-fill" id="qr-gauge-fill"
+                  d="M 15 80 A 65 65 0 0 1 145 80"
+                  stroke="#22c55e"
+                  stroke-dasharray="204.2"
+                  stroke-dashoffset="204.2"
+                />
+                <text class="gauge-score" id="qr-gauge-score"
+                  x="80" y="72" text-anchor="middle">0.0</text>
+                <text class="gauge-label"
+                  x="80" y="86" text-anchor="middle">Risk Score / 10</text>
+              </svg>
+              <span class="verdict-badge verdict-SAFE" id="qr-verdict-badge">SAFE</span>
+            </div>
+
+            <div class="flags-panel">
+              <h3>Threat Analysis Flags</h3>
+              <ul class="flags-list" id="qr-flags-list"></ul>
+            </div>
+          </div>
+
+          <div class="multilingual-alert" id="qr-multilingual"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         TAB 3 — Live Webcam QR Scanner
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <div id="webcam-tab" class="tab-panel">
+      <div class="card">
+        <div class="card-title">📹 Live Webcam QR Scanner</div>
+
+        <div class="webcam-container" id="webcam-container">
+          <video id="webcam-video" autoplay playsinline muted></video>
+          <div class="webcam-placeholder" id="webcam-placeholder">
+            <span>📷</span>
+            <p>Camera is off — click <strong>Start Camera</strong> to begin</p>
+          </div>
+        </div>
+
+        <div class="webcam-controls">
+          <button class="btn btn-primary" id="webcam-start-btn" onclick="startWebcam()">
+            ▶ Start Camera
+          </button>
+          <button class="btn btn-danger" id="webcam-stop-btn" onclick="stopWebcam()" disabled>
+            ⏹ Stop Camera
+          </button>
+          <button class="btn btn-secondary" id="webcam-capture-btn" onclick="captureFrame()" disabled>
+            📸 Capture &amp; Scan Frame
+          </button>
+        </div>
+
+        <p id="webcam-status">Camera inactive.</p>
+
+        <!-- Result -->
+        <div class="result-panel" id="webcam-result">
+          <div class="analyzed-url" id="webcam-analyzed-display">
+            <strong>URL Detected from Webcam Frame</strong>
+            <span id="webcam-analyzed-text"></span>
+          </div>
+          <div class="result-grid">
+            <div class="gauge-wrap">
+              <svg class="gauge-svg" viewBox="0 0 160 90">
+                <path class="gauge-track"
+                  d="M 15 80 A 65 65 0 0 1 145 80"
+                  stroke-dasharray="204.2"
+                  stroke-dashoffset="0"
+                />
+                <path class="gauge-fill" id="webcam-gauge-fill"
+                  d="M 15 80 A 65 65 0 0 1 145 80"
+                  stroke="#22c55e"
+                  stroke-dasharray="204.2"
+                  stroke-dashoffset="204.2"
+                />
+                <text class="gauge-score" id="webcam-gauge-score"
+                  x="80" y="72" text-anchor="middle">0.0</text>
+                <text class="gauge-label"
+                  x="80" y="86" text-anchor="middle">Risk Score / 10</text>
+              </svg>
+              <span class="verdict-badge verdict-SAFE" id="webcam-verdict-badge">SAFE</span>
+            </div>
+
+            <div class="flags-panel">
+              <h3>Threat Analysis Flags</h3>
+              <ul class="flags-list" id="webcam-flags-list"></ul>
+            </div>
+          </div>
+
+          <div class="multilingual-alert" id="webcam-multilingual"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         TAB 4 — Scan History
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <div id="history-tab" class="tab-panel">
+      <div class="card">
+        <div class="history-controls">
+          <div class="card-title" style="margin-bottom:0;">📋 Recent Scan History</div>
+          <button class="btn btn-secondary" onclick="loadHistory()">↻ Refresh</button>
+        </div>
+
+        <div id="history-body">
+          <div class="history-empty">
+            <span>📂</span>
+            <p>No scans recorded yet. Analyze a URL or QR code to get started.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /page-wrapper -->
+
+  <!-- ── Toast Notification ──────────────────────────────────────────────── -->
+  <div id="toast"></div>
+
+  <!-- ── Hidden canvas for webcam frame capture ─────────────────────────── -->
+  <canvas id="capture-canvas" style="display:none;"></canvas>
+
+  <script>
+    /* ════════════════════════════════════════════════════════════════════════
+       UTILITIES
+    ════════════════════════════════════════════════════════════════════════ */
+
+    /** Show a brief toast notification */
+    function showToast(msg, type = 'info') {
+      const t = document.getElementById('toast');
+      const colors = { info: '#1e293b', error: '#7f1d1d', success: '#14532d' };
+      t.style.background = colors[type] || colors.info;
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
+    /** Set loading state on a button */
+    function setLoading(btnId, spinnerId, textId, loading, label = 'Analyze Threat') {
+      const btn = document.getElementById(btnId);
+      const spinner = document.getElementById(spinnerId);
+      const text = document.getElementById(textId);
+      btn.disabled = loading;
+      spinner.style.display = loading ? 'block' : 'none';
+      text.textContent = loading ? 'Analyzing…' : label;
+    }
+
+    /**
+     * Update the SVG half-circle gauge.
+     * The arc path length for r=65 half-circle ≈ π × 65 ≈ 204.2
+     */
+    function updateGauge(fillId, scoreId, score) {
+      const ARC_LEN = 204.2;
+      const fill  = document.getElementById(fillId);
+      const label = document.getElementById(scoreId);
+
+      const offset = ARC_LEN - (score / 10) * ARC_LEN;
+      fill.style.strokeDashoffset = offset;
+
+      // Color by risk level
+      if (score >= 6)       fill.style.stroke = '#ef4444';
+      else if (score >= 3.5) fill.style.stroke = '#eab308';
+      else                   fill.style.stroke = '#22c55e';
+
+      label.textContent = score.toFixed(1);
+    }
+
+    /** Render verdict badge */
+    function updateVerdict(badgeId, verdict) {
+      const badge = document.getElementById(badgeId);
+      badge.textContent = verdict;
+      badge.className = `verdict-badge verdict-${verdict}`;
+    }
+
+    /** Render threat flags list */
+    function renderFlags(listId, flags) {
+      const ul = document.getElementById(listId);
+      ul.innerHTML = '';
+      flags.forEach(f => {
+        const li = document.createElement('li');
+        li.textContent = f;
+        if (f.startsWith('✅'))      li.classList.add('flag-safe');
+        else if (f.startsWith('⚠'))  li.classList.add('flag-warn');
+        ul.appendChild(li);
+      });
+    }
+
+    /** Render multilingual alert */
+    function renderMultilingual(elemId, verdict) {
+      const el = document.getElementById(elemId);
+      el.className = 'multilingual-alert visible';
+
+      if (verdict === 'PHISHING') {
+        el.classList.add('alert-danger');
+        el.innerHTML =
+          '⚠️ <strong>DANGER:</strong> Phishing link detected!<br>' +
+          '⚠️ హెచ్చరిక: ప్రమాదకరమైన లింక్ కనుగొనబడింది! (Telugu)<br>' +
+          '⚠️ चेतावनी: खतरनाक लिंक पाया गया! (Hindi)';
+      } else if (verdict === 'SUSPICIOUS') {
+        el.classList.add('alert-warn');
+        el.innerHTML =
+          '⚠️ <strong>CAUTION:</strong> Suspicious link — proceed carefully.<br>' +
+          '⚠️ అనుమానాస్పద లింక్ — జాగ్రత్తగా కొనసాగండి (Telugu)<br>' +
+          '⚠️ संदिग्ध लिंक — सावधानी से आगे बढ़ें (Hindi)';
+      } else {
+        el.classList.add('alert-safe');
+        el.innerHTML =
+          '✅ <strong>SAFE:</strong> No threats detected.<br>' +
+          '✅ సురక్షితమైన లింక్ (Telugu)<br>' +
+          '✅ सुरक्षित लिंक (Hindi)';
+      }
+    }
+
+    /** Render a full result block (gauge + flags + multilingual) */
+    function renderResult(prefix, url, result) {
+      updateGauge(`${prefix}-gauge-fill`, `${prefix}-gauge-score`, result.score);
+      updateVerdict(`${prefix}-verdict-badge`, result.verdict);
+      renderFlags(`${prefix}-flags-list`, result.flags);
+      renderMultilingual(`${prefix}-multilingual`, result.verdict);
+
+      document.getElementById(`${prefix}-analyzed-text`).textContent = url;
+      document.getElementById(`${prefix}-result`).classList.add('visible');
+    }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       TAB SWITCHING
+    ════════════════════════════════════════════════════════════════════════ */
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.tab;
+
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+
+        btn.classList.add('active');
+        document.getElementById(target).classList.add('active');
+
+        // Auto-load history when switching to that tab
+        if (target === 'history-tab') loadHistory();
+      });
+    });
+
+    /* ════════════════════════════════════════════════════════════════════════
+       TAB 1 — URL ANALYZER
+    ════════════════════════════════════════════════════════════════════════ */
+    async function analyzeURL() {
+      const input = document.getElementById('url-input');
+      const url   = input.value.trim();
+
+      if (!url) {
+        showToast('Please enter a URL to analyze.', 'error');
+        input.focus();
+        return;
+      }
+
+      setLoading('url-analyze-btn', 'url-spinner', 'url-btn-text', true);
+      document.getElementById('url-result').classList.remove('visible');
+
+      try {
+        const res  = await fetch('/analyze', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ url }),
+        });
+        const data = await res.json();
+
+        if (!data.success) throw new Error(data.error || 'Analysis failed');
+
+        renderResult('url', url, data.result);
+        showToast('Analysis complete.', 'success');
+      } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+      } finally {
+        setLoading('url-analyze-btn', 'url-spinner', 'url-btn-text', false, 'Analyze Threat');
+      }
+    }
+
+    // Allow pressing Enter in the URL input
+    document.getElementById('url-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') analyzeURL();
+    });
+
+    /* ════════════════════════════════════════════════════════════════════════
+       TAB 2 — QR IMAGE SCAN
+    ════════════════════════════════════════════════════════════════════════ */
+    let selectedQRFile = null;
+
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      selectedQRFile = file;
+
+      // Show preview
+      const preview = document.getElementById('qr-preview');
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = 'block';
+
+      document.getElementById('qr-scan-btn').disabled = false;
+      document.getElementById('qr-result').classList.remove('visible');
+    }
+
+    // Drag-and-drop support
+    const dropZone = document.getElementById('drop-zone');
+
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('drag-over');
+    });
+
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        selectedQRFile = file;
+        const preview = document.getElementById('qr-preview');
+        preview.src = URL.createObjectURL(file);
+        preview.style.display = 'block';
+        document.getElementById('qr-scan-btn').disabled = false;
+        document.getElementById('qr-result').classList.remove('visible');
+      } else {
+        showToast('Please drop a valid image file.', 'error');
+      }
+    });
+
+    async function scanQRImage() {
+      if (!selectedQRFile) {
+        showToast('Please select an image first.', 'error');
+        return;
+      }
+
+      setLoading('qr-scan-btn', 'qr-spinner', 'qr-btn-text', true);
+      document.getElementById('qr-result').classList.remove('visible');
+
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedQRFile);
+
+        const res  = await fetch('/scan_qr_image', { method: 'POST', body: formData });
+        const data = await res.json();
+
+        if (!data.success) throw new Error(data.error || 'QR scan failed');
+
+        renderResult('qr', data.url, data.result);
+        showToast('QR code decoded and analyzed.', 'success');
+      } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+      } finally {
+        setLoading('qr-scan-btn', 'qr-spinner', 'qr-btn-text', false, 'Scan & Analyze');
+      }
+    }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       TAB 3 — LIVE WEBCAM
+    ════════════════════════════════════════════════════════════════════════ */
+    let webcamStream   = null;
+    let scanInterval   = null;
+    let autoScanActive = false;
+
+    async function startWebcam() {
+      try {
+        webcamStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const video  = document.getElementById('webcam-video');
+        video.srcObject = webcamStream;
+        video.style.display = 'block';
+        document.getElementById('webcam-placeholder').style.display = 'none';
+
+        document.getElementById('webcam-start-btn').disabled   = true;
+        document.getElementById('webcam-stop-btn').disabled    = false;
+        document.getElementById('webcam-capture-btn').disabled = false;
+        document.getElementById('webcam-status').textContent   =
+          'Camera active — point at a QR code and click "Capture & Scan Frame".';
+
+        // Auto-scan every 1.5 s
+        autoScanActive = true;
+        scanInterval = setInterval(autoScanFrame, 1500);
+      } catch (err) {
+        showToast(`Camera error: ${err.message}`, 'error');
+      }
+    }
+
+    function stopWebcam() {
+      if (webcamStream) {
+        webcamStream.getTracks().forEach(t => t.stop());
+        webcamStream = null;
+      }
+      clearInterval(scanInterval);
+      autoScanActive = false;
+
+      const video = document.getElementById('webcam-video');
+      video.srcObject = null;
+      video.style.display = 'none';
+      document.getElementById('webcam-placeholder').style.display = 'flex';
+
+      document.getElementById('webcam-start-btn').disabled   = false;
+      document.getElementById('webcam-stop-btn').disabled    = true;
+      document.getElementById('webcam-capture-btn').disabled = true;
+      document.getElementById('webcam-status').textContent   = 'Camera inactive.';
+    }
+
+    /** Capture a single frame and send to /scan_frame */
+    async function captureFrame() {
+      await sendFrame(true);
+    }
+
+    /** Auto-scan silently; only show result if a QR is found */
+    async function autoScanFrame() {
+      await sendFrame(false);
+    }
+
+    async function sendFrame(showNoQRToast) {
+      const video  = document.getElementById('webcam-video');
+      const canvas = document.getElementById('capture-canvas');
+      if (!webcamStream || video.readyState < 2) return;
+
+      canvas.width  = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+      const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
+      try {
+        const res  = await fetch('/scan_frame', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ image: imageData }),
+        });
+        const data = await res.json();
+
+        if (!data.success) throw new Error(data.error);
+
+        if (data.url) {
+          // QR found — stop auto-scan and analyze
+          clearInterval(scanInterval);
+          autoScanActive = false;
+          document.getElementById('webcam-status').textContent =
+            `✅ QR detected: ${data.url} — analyzing…`;
+
+          const analyzeRes  = await fetch('/analyze', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ url: data.url }),
+          });
+          const analyzeData = await analyzeRes.json();
+
+          if (!analyzeData.success) throw new Error(analyzeData.error);
+
+          renderResult('webcam', data.url, analyzeData.result);
+          document.getElementById('webcam-status').textContent =
+            `QR analyzed — verdict: ${analyzeData.result.verdict}`;
+          showToast('QR code detected and analyzed!', 'success');
+        } else if (showNoQRToast) {
+          showToast('No QR code found in this frame. Try again.', 'info');
+        }
+      } catch (err) {
+        if (showNoQRToast) showToast(`Frame error: ${err.message}`, 'error');
+      }
+    }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       TAB 4 — SCAN HISTORY
+    ════════════════════════════════════════════════════════════════════════ */
+    async function loadHistory() {
+      const body = document.getElementById('history-body');
+      body.innerHTML = '<p style="color:var(--muted);padding:20px;">Loading…</p>';
+
+      try {
+        const res  = await fetch('/history');
+        const data = await res.json();
+
+        if (!data.success) throw new Error(data.error);
+
+        const records = data.records;
+
+        if (!records || records.length === 0) {
+          body.innerHTML = `
+            <div class="history-empty">
+              <span>📂</span>
+              <p>No scans recorded yet. Analyze a URL or QR code to get started.</p>
+            </div>`;
+          return;
+        }
+
+        // Newest first
+        const sorted = [...records].reverse();
+
+        body.innerHTML = `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>URL</th>
+                  <th>Score</th>
+                  <th>Verdict</th>
+                  <th>Flags</th>
+                </tr>
+              </thead>
+              <tbody id="history-rows"></tbody>
+            </table>
+          </div>`;
+
+        const tbody = document.getElementById('history-rows');
+
+        sorted.forEach(r => {
+          const score   = parseFloat(r.score);
+          const verdict = (r.verdict || '').toUpperCase();
+          const scoreClass =
+            verdict === 'PHISHING'   ? 'score-danger' :
+            verdict === 'SUSPICIOUS' ? 'score-warn'   : 'score-safe';
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="ts-cell">${r.timestamp || '—'}</td>
+            <td class="url-cell" title="${escapeHtml(r.url)}">${escapeHtml(r.url)}</td>
+            <td><span class="score-pill ${scoreClass}">${score.toFixed(1)}</span></td>
+            <td><span class="verdict-badge verdict-${verdict}">${verdict}</span></td>
+            <td style="color:var(--muted);font-size:0.78rem;max-width:280px;">${escapeHtml(r.flags || '')}</td>`;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        body.innerHTML = `<p style="color:var(--danger);padding:20px;">Failed to load history: ${err.message}</p>`;
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
