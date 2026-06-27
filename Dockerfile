@@ -18,8 +18,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application files into the container
 COPY . .
 
-# Set default port to 5001 (Render/Railway will override this automatically)
-ENV PORT=5001
-
-# Command to run the application using gunicorn production server
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT web_server:app"]
+# Command to run the Tkinter-based desktop application
+CMD ["python", "main.py"]
