@@ -4,8 +4,8 @@
 
 PhishShield AI is a web app that checks links — typed, pasted, or hidden inside a QR code — and tells you in plain language whether they're **Safe**, **Suspicious**, or **Phishing**, and *why*.
 
-🔗 Live demo: _[add your deployed URL here once live]_
-📂 Repo: https://github.com/potluriakshara-dev/PhishShield-AI
+🔗 Live demo: 
+📂 Repo: https://phishshield-w5aa.onrender.com
 
 ---
 
