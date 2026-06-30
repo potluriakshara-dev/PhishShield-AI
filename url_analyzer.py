@@ -1,11 +1,47 @@
 """
 url_analyzer.py  —  PhishShield AI Backend
 Handles all URL feature extraction and risk scoring.
-No changes needed here by the UI member.
+
+Two scoring modes:
+  1. Rule-based (always available) — transparent, fast, zero dependencies.
+  2. ML model (Random Forest, if phishing_model.pkl is present) — trained
+     on the same features below, gives a calibrated probability + the
+     same human-readable flags for explainability.
+
+If no trained model is found, this module falls back to rule-based
+scoring automatically — nothing breaks on a fresh clone before you've
+run train_model.py.
 """
 
 import re
+import os
 from urllib.parse import urlparse
+
+# ── Optional ML dependency — degrades gracefully if not installed ───────────
+try:
+    import joblib
+    _ML_AVAILABLE = True
+except ImportError:
+    _ML_AVAILABLE = False
+
+_MODEL_PATH = os.path.join(os.path.dirname(__file__), "phishing_model.pkl")
+_model = None
+_model_load_attempted = False
+
+
+def _get_model():
+    """Lazy-load the trained model once. Returns None if unavailable."""
+    global _model, _model_load_attempted
+    if _model_load_attempted:
+        return _model
+    _model_load_attempted = True
+    if _ML_AVAILABLE and os.path.isfile(_MODEL_PATH):
+        try:
+            _model = joblib.load(_MODEL_PATH)
+        except Exception as e:
+            print(f"[url_analyzer] Could not load ML model: {e}")
+            _model = None
+    return _model
 
 # ── Known shortener domains (common in QR phishing / quishing) ──────────────
 SHORTENERS = {
@@ -177,16 +213,78 @@ def calculate_risk(features: dict) -> dict:
     }
 
 
+def calculate_risk_ml(features: dict) -> dict:
+    """
+    Score a URL using the trained Random Forest model.
+    Falls back to None if no model is loaded — caller should
+    fall back to calculate_risk() (rule-based) in that case.
+
+    The model was trained on the exact feature set extract_features()
+    produces, so features dicts are passed straight through.
+    """
+    model = _get_model()
+    if model is None:
+        return None
+
+    feature_order = [
+        "url_length", "dot_count", "slash_count", "hyphen_count", "at_symbol",
+        "double_slash", "has_port", "has_https", "has_ip_address", "has_encoding",
+        "subdomain_depth", "is_shortener", "tld_suspicious", "keyword_count",
+        "digit_ratio", "qr_trick_count",
+    ]
+    import pandas as pd
+    row = pd.DataFrame([[features[k] for k in feature_order]], columns=feature_order)
+
+    proba = model.predict_proba(row)[0][1]   # probability of "phishing" class
+    score = round(proba * 10, 1)              # scale to same 0-10 range as rule-based
+
+    if score >= 6:
+        verdict = "PHISHING"
+    elif score >= 3.5:
+        verdict = "SUSPICIOUS"
+    else:
+        verdict = "SAFE"
+
+    return {"score": score, "verdict": verdict, "model": "random_forest"}
+
+
+
 def analyze_url(url: str) -> dict:
     """
     Main entry point.
     Call this from the frontend with any URL string.
-    Returns {"score": float, "verdict": str, "flags": list[str]}
+
+    Uses the trained Random Forest model for the score when available
+    (phishing_model.pkl present), otherwise falls back to the rule-based
+    score. The human-readable flags always come from the rule engine,
+    so every prediction — ML or rule-based — is explainable.
+
+    Returns:
+        {
+          "score": float,        # 0.0 - 10.0
+          "verdict": str,        # "SAFE" | "SUSPICIOUS" | "PHISHING"
+          "flags": list[str],    # explanation, always present
+          "model": str           # "random_forest" or "rule_based"
+        }
     """
     url = url.strip()
     if not url:
-        return {"score": 0.0, "verdict": "SAFE", "flags": ["No URL provided"]}
+        return {"score": 0.0, "verdict": "SAFE", "flags": ["No URL provided"], "model": "rule_based"}
 
     features = extract_features(url)
-    result   = calculate_risk(features)
-    return result
+    rule_result = calculate_risk(features)   # always computed — gives the flags
+    ml_result = calculate_risk_ml(features)  # None if no trained model present
+
+    if ml_result is not None:
+        # Use the ML score/verdict, but keep the rule-based flags as explanation
+        return {
+            "score": ml_result["score"],
+            "verdict": ml_result["verdict"],
+            "flags": rule_result["flags"],
+            "model": "random_forest",
+        }
+
+    # No trained model available — pure rule-based fallback
+    rule_result["model"] = "rule_based"
+    return rule_result
+
